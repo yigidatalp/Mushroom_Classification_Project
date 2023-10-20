@@ -5,6 +5,17 @@ Created on Fri Oct 20 12:05:13 2023
 @author: Yigitalp
 """
 # import data wrangling libraries
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+from xgboost import plot_tree
+from xgboost import XGBClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression, RidgeClassifier
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 
@@ -14,20 +25,10 @@ import seaborn as sns
 sns.set_style("darkgrid")
 
 # import encoding, splitting, and feature selection libraries
-from sklearn.model_selection import train_test_split
-from sklearn.feature_selection import mutual_info_classif
 
 # import classifer libraries
-from sklearn.linear_model import LogisticRegression, RidgeClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neural_network import MLPClassifier
-from sklearn.ensemble import RandomForestClassifier
-from xgboost import XGBClassifier
 
 # import metrics libraries
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import classification_report
 
 # import the dataset
 df = pd.read_csv('mushrooms.csv')
@@ -38,39 +39,52 @@ df.head()
 
 # Encode target
 class_value_counts = df['class'].value_counts()
-df['class'] = df['class'].replace([class_value_counts.idxmin(), class_value_counts.idxmax()], [0, 1])
+df['class'] = df['class'].replace(
+    [class_value_counts.idxmin(), class_value_counts.idxmax()], [0, 1])
 
 # Grouper function for plotting and encoding
+
+
 def grouper(feature):
     group_feature_class = df.groupby([feature, 'class'])['class'].count()
     group_feature_class = group_feature_class.rename('count')
     group_feature_class = group_feature_class.reset_index()
-    hue_order = group_feature_class.sort_values(['class', 'count'], ascending=[True, False])[feature].unique()
+    hue_order = group_feature_class.sort_values(['class', 'count'], ascending=[
+                                                True, False])[feature].unique()
     return group_feature_class, hue_order
 
 # Plotter function for EDA with bivariate analysis
+
+
 def plotter(feature):
     group_feature_class, hue_order = grouper(feature)
     fig, ax = plt.subplots()
-    sns.barplot(data = group_feature_class, x = 'class', y = 'count', hue = feature, hue_order = hue_order, ax=ax)
+    sns.barplot(data=group_feature_class, x='class', y='count',
+                hue=feature, hue_order=hue_order, ax=ax)
     plt.ylabel('count')
     for label in ax.containers:
         ax.bar_label(label,)
 
 # Encoder function with MinMax Scaler
+
+
 def target_encoder(feature):
     group_feature_class, _ = grouper(feature)
-    group_feature_class['score'] = group_feature_class['class']*group_feature_class['count']
+    group_feature_class['score'] = group_feature_class['class'] * \
+        group_feature_class['count']
     group_feature_class = group_feature_class.groupby(feature).agg(
         sum_of_counts=('count', np.sum),
         sum_of_scores=('score', np.sum)
-        )
+    )
     group_feature_class = group_feature_class.reset_index()
-    group_feature_class['score'] = group_feature_class['sum_of_scores'] / group_feature_class['sum_of_counts']
+    group_feature_class['score'] = group_feature_class['sum_of_scores'] / \
+        group_feature_class['sum_of_counts']
     code_list = [code for code in range(len(group_feature_class))]
     sorted_group = group_feature_class.sort_values(by='score')
     df[feature] = df[feature].replace(list(sorted_group[feature]), code_list)
-    df[feature] = (df[feature] - df[feature].min()) / (df[feature].max() - df[feature].min())
+    df[feature] = (df[feature] - df[feature].min()) / \
+        (df[feature].max() - df[feature].min())
+
 
 # Encode all features
 for col in df.columns:
@@ -85,9 +99,11 @@ group_veil_type['score'] = group_veil_type['class']*group_veil_type['count']
 group_veil_type = group_veil_type.groupby('veil-type').agg(
     sum_of_counts=('count', np.sum),
     sum_of_scores=('score', np.sum)
-    )
-group_veil_type['score'] = group_veil_type['sum_of_scores'] / group_veil_type['sum_of_counts']
-df['veil-type'] = df['veil-type'].replace(group_veil_type.index, group_veil_type['score'])
+)
+group_veil_type['score'] = group_veil_type['sum_of_scores'] / \
+    group_veil_type['sum_of_counts']
+df['veil-type'] = df['veil-type'].replace(
+    group_veil_type.index, group_veil_type['score'])
 
 # Feature selection: Correlation
 corr = abs(df.corr())
@@ -115,9 +131,10 @@ feature_scores['Weighted_scores'] = alpha * \
 selected_features = [
     col for col in feature_scores.index if feature_scores.loc[col, 'Weighted_scores'] >= alpha]
 X = X[selected_features]
-        
+
 # Split dataset into train and test sets per 80/20
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)    
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
 
 # Create classifier models
 logistic_classifer = LogisticRegression()
@@ -131,7 +148,7 @@ xgboost_classifier = XGBClassifier()
 # Train classifier models
 logistic_classifer.fit(X_train, y_train)
 ridge_classifier.fit(X_train, y_train)
-decision_tree_classifier.fit(X_train, y_train)  
+decision_tree_classifier.fit(X_train, y_train)
 naive_bayes_classifier.fit(X_train, y_train)
 neural_network_classifier.fit(X_train, y_train)
 random_forest_classifier.fit(X_train, y_train)
@@ -151,7 +168,8 @@ logistic_report = classification_report(y_test, logistic_predictions)
 ridge_report = classification_report(y_test, ridge_predictions)
 decision_tree_report = classification_report(y_test, decision_tree_predictions)
 naive_bayes_report = classification_report(y_test, naive_bayes_predictions)
-neural_network_report = classification_report(y_test, neural_network_predictions)
+neural_network_report = classification_report(
+    y_test, neural_network_predictions)
 random_forest_report = classification_report(y_test, random_forest_predictions)
 xgboost_report = classification_report(y_test, xgboost_predictions)
 
@@ -184,6 +202,6 @@ print('XGBoost Classifier')
 print(xgboost_report)
 print(confusion_matrix(y_test, xgboost_predictions))
 print()
-
-
-
+fig, ax = plt.subplots(figsize=(15, 10))
+plot_tree(xgboost_classifier, ax=ax)
+plt.savefig('XGBoost Decision Tree.pdf')
