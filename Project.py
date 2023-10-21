@@ -4,7 +4,7 @@ Created on Fri Oct 20 12:05:13 2023
 
 @author: Yigitalp
 """
-# import data wrangling libraries
+# import libraries
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from xgboost import plot_tree
@@ -18,17 +18,9 @@ from sklearn.feature_selection import mutual_info_classif
 from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
-
-# import data visualization libraries
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style("darkgrid")
-
-# import encoding, splitting, and feature selection libraries
-
-# import classifer libraries
-
-# import metrics libraries
 
 # import the dataset
 df = pd.read_csv('mushrooms.csv')
