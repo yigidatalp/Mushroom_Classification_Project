@@ -33,9 +33,11 @@ sns.set_style("darkgrid")
 # import the dataset
 df = pd.read_csv('mushrooms.csv')
 
-# check if there are non-null values
+# check the dataset: Since veil-type has 1 unique value, it can be dropped
 df.info()
 df.head()
+df.nunique()
+df = df.drop('veil-type', axis=1)
 
 # Encode target
 class_value_counts = df['class'].value_counts()
@@ -90,31 +92,23 @@ def target_encoder(feature):
 for col in df.columns:
     if col != 'class':
         plotter(col)
-        if col != 'veil-type':
-            target_encoder(col)
+        target_encoder(col)
 
-# Since veil-type has only one value 'p', it's replaced per weighted average of 0s and 1s
-group_veil_type, _ = grouper('veil-type')
-group_veil_type['score'] = group_veil_type['class']*group_veil_type['count']
-group_veil_type = group_veil_type.groupby('veil-type').agg(
-    sum_of_counts=('count', np.sum),
-    sum_of_scores=('score', np.sum)
-)
-group_veil_type['score'] = group_veil_type['sum_of_scores'] / \
-    group_veil_type['sum_of_counts']
-df['veil-type'] = df['veil-type'].replace(
-    group_veil_type.index, group_veil_type['score'])
-
+# Optional
+"""
 # Feature selection: Correlation
 corr = abs(df.corr())
 corr = corr['class']
 corr = corr.drop(index='class')
 corr.name = 'Corr_scores'
+"""
 
 # Create X and y
 X = df.drop('class', axis=1)
 y = df['class']
 
+# Optional
+"""
 # Feature selection: MI score
 MI_score = pd.Series(mutual_info_classif(X, y), name='MI_scores')
 MI_score.index = X.columns
@@ -131,6 +125,7 @@ feature_scores['Weighted_scores'] = alpha * \
 selected_features = [
     col for col in feature_scores.index if feature_scores.loc[col, 'Weighted_scores'] >= alpha]
 X = X[selected_features]
+"""
 
 # Split dataset into train and test sets per 80/20
 X_train, X_test, y_train, y_test = train_test_split(
@@ -173,7 +168,7 @@ neural_network_report = classification_report(
 random_forest_report = classification_report(y_test, random_forest_predictions)
 xgboost_report = classification_report(y_test, xgboost_predictions)
 
-# Print metrics report: Only with 3 features, almost 100% accurate predictions are achieved
+# Print metrics report: Other than Ridge and Naive Bayes Classifiers, 100% accuracy score is achieved
 print('Logistic Regression')
 print(logistic_report)
 print(confusion_matrix(y_test, logistic_predictions))
